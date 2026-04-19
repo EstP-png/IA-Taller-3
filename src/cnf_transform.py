@@ -5,7 +5,7 @@ El pipeline completo to_cnf() llama a todas las transformaciones en orden.
 
 from __future__ import annotations
 
-from src.logic_core import And, Atom, Formula, Not, Or
+from src.logic_core import And, Atom, Formula, Iff, Implies, Not, Or
 
 
 # --- FUNCION GUÍA SUMINISTRADA COMPLETA ---
@@ -81,7 +81,25 @@ def eliminate_implication(formula: Formula) -> Formula:
           solo los nodos Implies.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa eliminate_implication()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return Not(eliminate_implication(formula.operand))
+    if isinstance(formula, And):
+        return And(*(eliminate_implication(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(eliminate_implication(d) for d in formula.disjuncts))
+    if isinstance(formula, Implies):
+        return Or(
+            Not(eliminate_implication(formula.antecedent)),
+            eliminate_implication(formula.consequent),
+        )
+    if isinstance(formula, Iff):
+        return Iff(
+            eliminate_implication(formula.left),
+            eliminate_implication(formula.right),
+        )
+    return formula
     # === END YOUR CODE ===
 
 
@@ -111,7 +129,19 @@ def push_negation_inward(formula: Formula) -> Formula:
           asi que no necesitas manejar esos tipos.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa push_negation_inward()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        if isinstance(formula.operand, And):
+            return Or(*(push_negation_inward(Not(c)) for c in formula.operand.conjuncts))
+        if isinstance(formula.operand, Or):
+            return And(*(push_negation_inward(Not(d)) for d in formula.operand.disjuncts))
+        return Not(push_negation_inward(formula.operand))
+    if isinstance(formula, And):
+        return And(*(push_negation_inward(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(push_negation_inward(d) for d in formula.disjuncts))
+    return formula
     # === END YOUR CODE ===
 
 
@@ -138,7 +168,22 @@ def distribute_or_over_and(formula: Formula) -> Formula:
           asi que solo veras Atom, Not(Atom), And y Or.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa distribute_or_over_and()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return formula
+    if isinstance(formula, And):
+        return And(*(distribute_or_over_and(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        nuevos = tuple(distribute_or_over_and(d) for d in formula.disjuncts)
+        for i, disyunto in enumerate(nuevos):
+            if isinstance(disyunto, And):
+                restantes = nuevos[:i] + nuevos[i + 1 :]
+                return distribute_or_over_and(
+                    And(*(Or(*(restantes + (c,))) for c in disyunto.conjuncts))
+                )
+        return Or(*nuevos)
+    return formula
     # === END YOUR CODE ===
 
 
@@ -164,7 +209,33 @@ def flatten(formula: Formula) -> Formula:
           Si al final solo queda 1 elemento, retornalo directamente.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa flatten()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return formula
+    if isinstance(formula, And):
+        nuevos = []
+        for c in formula.conjuncts:
+            hijo = flatten(c)
+            if isinstance(hijo, And):
+                nuevos.extend(hijo.conjuncts)
+            else:
+                nuevos.append(hijo)
+        if len(nuevos) == 1:
+            return nuevos[0]
+        return And(*nuevos)
+    if isinstance(formula, Or):
+        nuevos = []
+        for d in formula.disjuncts:
+            hijo = flatten(d)
+            if isinstance(hijo, Or):
+                nuevos.extend(hijo.disjuncts)
+            else:
+                nuevos.append(hijo)
+        if len(nuevos) == 1:
+            return nuevos[0]
+        return Or(*nuevos)
+    return formula
     # === END YOUR CODE ===
 
 
