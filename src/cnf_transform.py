@@ -60,7 +60,25 @@ def eliminate_iff(formula: Formula) -> Formula:
           y solo transforma cuando encuentras un Iff.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa eliminate_iff()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return Not(eliminate_iff(formula.operand))
+    if isinstance(formula, And):
+        return And(*(eliminate_iff(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(eliminate_iff(d) for d in formula.disjuncts))
+    if isinstance(formula, Implies):
+        return Implies(
+            eliminate_iff(formula.antecedent),
+            eliminate_iff(formula.consequent),
+        )
+    if isinstance(formula, Iff):
+        return And(
+            Implies(eliminate_iff(formula.left), eliminate_iff(formula.right)),
+            Implies(eliminate_iff(formula.right), eliminate_iff(formula.left)),
+        )
+    return formula
     # === END YOUR CODE ===
 
 
