@@ -37,6 +37,77 @@ def crear_kb() -> KnowledgeBase:
 
     # === YOUR CODE HERE ===
 
+    # --- Hechos ---
+    # Huellas de Reynaldo en el frasco de arsénico (arma del crimen)
+    kb.add_fact(Predicate("huellas_en_arma", (reynaldo, frasco_arsenico)))
+
+    # Pablo estuvo lejos de la escena (jardín exterior, no pudo acceder a la bodega)
+    kb.add_fact(Predicate("lejos_de_escena", (pablo,)))
+
+    # Bernardo estuvo lejos de la escena (garaje, no pudo acceder a la bodega)
+    kb.add_fact(Predicate("lejos_de_escena", (bernardo,)))
+
+    # Pablo acusa directamente a Reynaldo
+    kb.add_fact(Predicate("acusa", (pablo, reynaldo)))
+
+    # Margot da coartada a Reynaldo
+    kb.add_fact(Predicate("da_coartada", (margot, reynaldo)))
+
+    # Reynaldo da coartada a Margot
+    kb.add_fact(Predicate("da_coartada", (reynaldo, margot)))
+
+    # Reynaldo no tiene coartada verificada (hecho positivo)
+    kb.add_fact(Predicate("sin_coartada_verificada", (reynaldo,)))
+
+    # --- Reglas ---
+    # Quien tiene huellas en el arma tiene evidencia directa en su contra
+    kb.add_rule(Rule(
+        head=Predicate("evidencia_directa", (Term("$X"),)),
+        body=(Predicate("huellas_en_arma", (Term("$X"), Term("$Arma"))),),
+    ))
+
+    # Quien estuvo lejos de la escena está descartado como culpable
+    kb.add_rule(Rule(
+        head=Predicate("descartado", (Term("$X"),)),
+        body=(Predicate("lejos_de_escena", (Term("$X"),)),),
+    ))
+
+    # El testimonio de alguien descartado es confiable
+    kb.add_rule(Rule(
+        head=Predicate("testimonio_confiable", (Term("$X"), Term("$Y"))),
+        body=(
+            Predicate("descartado", (Term("$X"),)),
+            Predicate("acusa", (Term("$X"), Term("$Y"))),
+        ),
+    ))
+
+    # Quien tiene evidencia directa y sin coartada verificada es culpable
+    kb.add_rule(Rule(
+        head=Predicate("culpable", (Term("$X"),)),
+        body=(
+            Predicate("evidencia_directa", (Term("$X"),)),
+            Predicate("sin_coartada_verificada", (Term("$X"),)),
+        ),
+    ))
+
+    # Quien da coartada a un culpable lo está encubriendo
+    kb.add_rule(Rule(
+        head=Predicate("encubridor", (Term("$Y"),)),
+        body=(
+            Predicate("culpable", (Term("$X"),)),
+            Predicate("da_coartada", (Term("$Y"), Term("$X"))),
+        ),
+    ))
+
+    # Si dos personas se dan coartada mutuamente, existe una coartada cruzada entre ellas
+    kb.add_rule(Rule(
+        head=Predicate("coartada_cruzada", (Term("$X"), Term("$Y"))),
+        body=(
+            Predicate("da_coartada", (Term("$X"), Term("$Y"))),
+            Predicate("da_coartada", (Term("$Y"), Term("$X"))),
+        ),
+    ))
+
     # === END YOUR CODE ===
 
     return kb
