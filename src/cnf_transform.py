@@ -62,26 +62,18 @@ def eliminate_iff(formula: Formula) -> Formula:
     # === YOUR CODE HERE ===
     if isinstance(formula, Atom):
         return formula
-    
     if isinstance(formula, Not):
         return Not(eliminate_iff(formula.operand))
-    
     if isinstance(formula, And):
         return And(*(eliminate_iff(c) for c in formula.conjuncts))
-    
     if isinstance(formula, Or):
         return Or(*(eliminate_iff(d) for d in formula.disjuncts))
-    
     if isinstance(formula, Implies):
-        return Implies(
-            eliminate_iff(formula.antecedent),
-            eliminate_iff(formula.consequent),)
-    
+        return Implies(eliminate_iff(formula.antecedent), eliminate_iff(formula.consequent))
     if isinstance(formula, Iff):
-        izquierda = eliminate_iff(formula.left)
-        derecha = eliminate_iff(formula.right)
-
-        return And(Implies(izquierda, derecha), Implies(derecha, izquierda))
+        left = eliminate_iff(formula.left)
+        right = eliminate_iff(formula.right)
+        return And(Implies(left, right), Implies(right, left))
     return formula
     # === END YOUR CODE ===
 
@@ -105,26 +97,18 @@ def eliminate_implication(formula: Formula) -> Formula:
     # === YOUR CODE HERE ===
     if isinstance(formula, Atom):
         return formula
-    
     if isinstance(formula, Not):
         return Not(eliminate_implication(formula.operand))
-    
     if isinstance(formula, And):
         return And(*(eliminate_implication(c) for c in formula.conjuncts))
-    
     if isinstance(formula, Or):
         return Or(*(eliminate_implication(d) for d in formula.disjuncts))
-    
     if isinstance(formula, Implies):
-        antecedente = eliminate_implication(formula.antecedent)
-        consecuente = eliminate_implication(formula.consequent)
-        return Or(Not(antecedente), consecuente)
-    
+        antecedent = eliminate_implication(formula.antecedent)
+        consequent = eliminate_implication(formula.consequent)
+        return Or(Not(antecedent), consequent)
     if isinstance(formula, Iff):
-        return Iff(
-            eliminate_implication(formula.left),
-            eliminate_implication(formula.right),)
-    
+        return Iff(eliminate_implication(formula.left), eliminate_implication(formula.right))
     return formula
     # === END YOUR CODE ===
 
@@ -157,22 +141,17 @@ def push_negation_inward(formula: Formula) -> Formula:
     # === YOUR CODE HERE ===
     if isinstance(formula, Atom):
         return formula
-    
     if isinstance(formula, Not):
-        if isinstance(formula.operand, And):
-            return Or(*(push_negation_inward(Not(c)) for c in formula.operand.conjuncts))
-        
-        if isinstance(formula.operand, Or):
-            return And(*(push_negation_inward(Not(d)) for d in formula.operand.disjuncts))
-        
-        return Not(push_negation_inward(formula.operand))
-    
+        operand = formula.operand
+        if isinstance(operand, And):
+            return Or(*(push_negation_inward(Not(c)) for c in operand.conjuncts))
+        if isinstance(operand, Or):
+            return And(*(push_negation_inward(Not(d)) for d in operand.disjuncts))
+        return Not(push_negation_inward(operand))
     if isinstance(formula, And):
         return And(*(push_negation_inward(c) for c in formula.conjuncts))
-    
     if isinstance(formula, Or):
         return Or(*(push_negation_inward(d) for d in formula.disjuncts))
-    
     return formula
     # === END YOUR CODE ===
 
@@ -200,25 +179,18 @@ def distribute_or_over_and(formula: Formula) -> Formula:
           asi que solo veras Atom, Not(Atom), And y Or.
     """
     # === YOUR CODE HERE ===
-    if isinstance(formula, Atom):
+    if isinstance(formula, Atom) or isinstance(formula, Not):
         return formula
-    
-    if isinstance(formula, Not):
-        return formula
-    
     if isinstance(formula, And):
         return And(*(distribute_or_over_and(c) for c in formula.conjuncts))
-    
     if isinstance(formula, Or):
-        nuevos = tuple(distribute_or_over_and(d) for d in formula.disjuncts)
-        for i, disyunto in enumerate(nuevos):
-
-            if isinstance(disyunto, And):
-                restantes = nuevos[:i] + nuevos[i + 1 :]
-
-                return distribute_or_over_and(
-                    And(*(Or(*(restantes + (c,))) for c in disyunto.conjuncts)))
-        return Or(*nuevos)
+        new_disjuncts = tuple(distribute_or_over_and(d) for d in formula.disjuncts)
+        for i, disj in enumerate(new_disjuncts):
+            if isinstance(disj, And):
+                others = new_disjuncts[:i] + new_disjuncts[i+1:]
+                distributed = And(*(Or(*others, c) for c in disj.conjuncts))
+                return distribute_or_over_and(distributed)
+        return Or(*new_disjuncts)
     return formula
     # === END YOUR CODE ===
 
@@ -245,38 +217,30 @@ def flatten(formula: Formula) -> Formula:
           Si al final solo queda 1 elemento, retornalo directamente.
     """
     # === YOUR CODE HERE ===
-    if isinstance(formula, Atom):
+    if isinstance(formula, Atom) or isinstance(formula, Not):
         return formula
-    
-    if isinstance(formula, Not):
-        return formula
-    
     if isinstance(formula, And):
-        nuevos = []
+        parts = []
         for c in formula.conjuncts:
-            c = flatten(c)
-            if isinstance(c, And):
-                nuevos += list(c.conjuncts)
+            c_flat = flatten(c)
+            if isinstance(c_flat, And):
+                parts.extend(c_flat.conjuncts)
             else:
-                nuevos.append(c)
-
-        if len(nuevos) == 1:
-            return nuevos[0]
-        return And(*nuevos)
-    
+                parts.append(c_flat)
+        if len(parts) == 1:
+            return parts[0]
+        return And(*parts)
     if isinstance(formula, Or):
-        nuevos = []
+        parts = []
         for d in formula.disjuncts:
-            d = flatten(d)
-
-            if isinstance(d, Or):
-                nuevos += list(d.disjuncts)
+            d_flat = flatten(d)
+            if isinstance(d_flat, Or):
+                parts.extend(d_flat.disjuncts)
             else:
-                nuevos.append(d)
-
-        if len(nuevos) == 1:
-            return nuevos[0]
-        return Or(*nuevos)
+                parts.append(d_flat)
+        if len(parts) == 1:
+            return parts[0]
+        return Or(*parts)
     return formula
     # === END YOUR CODE ===
 
