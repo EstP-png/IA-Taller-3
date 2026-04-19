@@ -273,7 +273,7 @@ def flatten(formula: Formula) -> Formula:
                 nuevos += list(d.disjuncts)
             else:
                 nuevos.append(d)
-                
+
         if len(nuevos) == 1:
             return nuevos[0]
         return Or(*nuevos)
